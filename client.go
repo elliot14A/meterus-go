@@ -13,14 +13,6 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// MeterusClient represents a client for the Meterus service.
-type MeterusClient struct {
-	conn   *grpc.ClientConn         // The gRPC client connection
-	client pb.MeteringServiceClient // The Metering service client
-	apiKey string                   // Meterus API KEY
-}
-
-// authInterceptor creates a gRPC interceptor that adds the API key to the outgoing context.
 func authInterceptor(apiKey string) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		// Add the API key to the outgoing context as a Bearer token
@@ -29,28 +21,50 @@ func authInterceptor(apiKey string) grpc.UnaryClientInterceptor {
 	}
 }
 
+// MeterusClient represents a client for the Meterus service.
+type MeterusClient struct {
+	conn         *grpc.ClientConn
+	client       pb.MeteringServiceClient
+	addr         string
+	unauthConn   *grpc.ClientConn
+	unauthClient pb.MeteringServiceClient
+}
+
 // NewMeterusClient creates a new MeterusClient with the given address and API key.
 func NewMeterusClient(addr, apiKey string, opts ...grpc.DialOption) (*MeterusClient, error) {
-	// Add the auth interceptor to the dial options
-	opts = append(opts, grpc.WithUnaryInterceptor(authInterceptor(apiKey)))
-	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts = append(opts,
+		grpc.WithUnaryInterceptor(authInterceptor(apiKey)),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 
-	// Establish a new gRPC client connection
 	conn, err := grpc.NewClient(addr, opts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create authenticated gRPC connection: %w", err)
 	}
 
-	// Create and return the MeterusClient
+	unauthConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		conn.Close() // Close the first connection if the second fails
+		return nil, fmt.Errorf("failed to create unauthenticated gRPC connection: %w", err)
+	}
+
 	return &MeterusClient{
-		conn:   conn,
-		client: pb.NewMeteringServiceClient(conn),
+		conn:         conn,
+		client:       pb.NewMeteringServiceClient(conn),
+		addr:         addr,
+		unauthConn:   unauthConn,
+		unauthClient: pb.NewMeteringServiceClient(unauthConn),
 	}, nil
 }
 
-// Close closes the client connection.
+// Close closes all client connections.
 func (c *MeterusClient) Close() error {
-	return c.conn.Close()
+	err1 := c.conn.Close()
+	err2 := c.unauthConn.Close()
+	if err1 != nil {
+		return err1
+	}
+	return err2
 }
 
 // Ingest sends a cloud event to the Meterus service for ingestion.
@@ -93,25 +107,9 @@ func (c *MeterusClient) ListMeterSubjects(ctx context.Context, meterIDOrSlug str
 	return c.client.ListMeterSubjects(ctx, &pb.ListMeterSubjectsRequest{MeterIdOrSlug: meterIDOrSlug})
 }
 
-func (c *MeterusClient) ValidateApiKey(ctx context.Context, api_key string, scopes []string) (*pb.ValidateApiKeyResponse, error) {
-	// Create a new context with only the provided API key
-	md, ok := metadata.FromOutgoingContext(ctx)
-	if !ok {
-		md = metadata.New(nil)
-	}
-
-	// Create a copy of the metadata
-	mdCopy := md.Copy()
-
-	// Remove any existing Authorization headers
-	mdCopy.Delete("Authorization")
-
-	// Add the new Authorization header with the provided API key
-	mdCopy.Set("Authorization", fmt.Sprintf("Bearer %s", api_key))
-
-	// Create a new context with the updated metadata
-	ctx = metadata.NewOutgoingContext(ctx, mdCopy)
-	return c.client.ValidateApiKey(ctx, &pb.ValidateApiKeyRequest{RequiredScopes: scopes})
+func (c *MeterusClient) ValidateApiKey(ctx context.Context, apiKey string, scopes []string) (*pb.ValidateApiKeyResponse, error) {
+	ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	return c.unauthClient.ValidateApiKey(ctx, &pb.ValidateApiKeyRequest{RequiredScopes: scopes})
 }
 
 // NewCloudEvent creates a new CloudEvent with the given parameters.
