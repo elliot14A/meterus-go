@@ -93,6 +93,15 @@ func (c *MeterusClient) ListMeterSubjects(ctx context.Context, meterIDOrSlug str
 	return c.client.ListMeterSubjects(ctx, &pb.ListMeterSubjectsRequest{MeterIdOrSlug: meterIDOrSlug})
 }
 
+func (c *MeterusClient) ValidateApiKey(ctx context.Context, api_key string, scopes []string) (*pb.ValidateApiKeyResponse, error) {
+	// Create a new context with only the provided API key
+	md := metadata.New(map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", api_key),
+	})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	return c.client.ValidateApiKey(ctx, &pb.ValidateApiKeyRequest{RequiredScopes: scopes})
+}
+
 // NewCloudEvent creates a new CloudEvent with the given parameters.
 func NewCloudEvent(id, source, specVersion, eventType string, time time.Time, subject string, data map[string]any) (*pb.CloudEvent, error) {
 	// Convert the data map to a protobuf Struct
