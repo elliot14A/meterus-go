@@ -95,10 +95,22 @@ func (c *MeterusClient) ListMeterSubjects(ctx context.Context, meterIDOrSlug str
 
 func (c *MeterusClient) ValidateApiKey(ctx context.Context, api_key string, scopes []string) (*pb.ValidateApiKeyResponse, error) {
 	// Create a new context with only the provided API key
-	md := metadata.New(map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", api_key),
-	})
-	ctx = metadata.NewOutgoingContext(ctx, md)
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		md = metadata.New(nil)
+	}
+
+	// Create a copy of the metadata
+	mdCopy := md.Copy()
+
+	// Remove any existing Authorization headers
+	mdCopy.Delete("Authorization")
+
+	// Add the new Authorization header with the provided API key
+	mdCopy.Set("Authorization", fmt.Sprintf("Bearer %s", api_key))
+
+	// Create a new context with the updated metadata
+	ctx = metadata.NewOutgoingContext(ctx, mdCopy)
 	return c.client.ValidateApiKey(ctx, &pb.ValidateApiKeyRequest{RequiredScopes: scopes})
 }
 
