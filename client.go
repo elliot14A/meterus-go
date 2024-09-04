@@ -58,7 +58,7 @@ func (c *MeterusClient) Ingest(ctx context.Context, event *pb.CloudEvent) error 
 }
 
 // ListMeters retrieves a list of meters from the Meterus service.
-func (c *MeterusClient) ListMeters(ctx context.Context, limit, page int32, application_slug string) (*pb.ListMetersResponse, error) {
+func (c *MeterusClient) ListMeters(ctx context.Context, limit, page int32) (*pb.ListMetersResponse, error) {
 	return c.client.ListMeters(ctx, &pb.ListMetersRequest{
 		Limit: limit,
 		Page:  page,
