@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/elliot14A/meterus-go/meters/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -32,6 +33,7 @@ func authInterceptor(apiKey string) grpc.UnaryClientInterceptor {
 func NewMeterusClient(addr, apiKey string, opts ...grpc.DialOption) (*MeterusClient, error) {
 	// Add the auth interceptor to the dial options
 	opts = append(opts, grpc.WithUnaryInterceptor(authInterceptor(apiKey)))
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	// Establish a new gRPC client connection
 	conn, err := grpc.NewClient(addr, opts...)
