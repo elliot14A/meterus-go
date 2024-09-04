@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	pb "github.com/factly/meterus/meterus-go/meters/v1"
+	pb "github.com/elliot14A/meterus-go/meters/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	structpb "google.golang.org/protobuf/types/known/structpb"

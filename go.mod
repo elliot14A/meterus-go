@@ -1,4 +1,4 @@
-module github.com/factly/meterus/meterus-go
+module github.com/elliot14A/meterus-go
 
 go 1.22.6
 
