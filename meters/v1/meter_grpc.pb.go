@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.27.1
-// source: meter.proto
+// source: v1/meter.proto
 
-package meterus_go
+package v1
 
 import (
 	context "context"
@@ -27,7 +27,6 @@ const (
 	MeteringService_DeleteMeter_FullMethodName       = "/meterus.meter.v1.MeteringService/DeleteMeter"
 	MeteringService_QueryMeter_FullMethodName        = "/meterus.meter.v1.MeteringService/QueryMeter"
 	MeteringService_ListMeterSubjects_FullMethodName = "/meterus.meter.v1.MeteringService/ListMeterSubjects"
-	MeteringService_ValidateApiKey_FullMethodName    = "/meterus.meter.v1.MeteringService/ValidateApiKey"
 )
 
 // MeteringServiceClient is the client API for MeteringService service.
@@ -41,7 +40,6 @@ type MeteringServiceClient interface {
 	DeleteMeter(ctx context.Context, in *MeterId, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	QueryMeter(ctx context.Context, in *QueryMeterRequest, opts ...grpc.CallOption) (*QueryMeterResponse, error)
 	ListMeterSubjects(ctx context.Context, in *ListMeterSubjectsRequest, opts ...grpc.CallOption) (*ListMeterSubjectsResponse, error)
-	ValidateApiKey(ctx context.Context, in *ValidateApiKeyRequest, opts ...grpc.CallOption) (*ValidateApiKeyResponse, error)
 }
 
 type meteringServiceClient struct {
@@ -122,16 +120,6 @@ func (c *meteringServiceClient) ListMeterSubjects(ctx context.Context, in *ListM
 	return out, nil
 }
 
-func (c *meteringServiceClient) ValidateApiKey(ctx context.Context, in *ValidateApiKeyRequest, opts ...grpc.CallOption) (*ValidateApiKeyResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ValidateApiKeyResponse)
-	err := c.cc.Invoke(ctx, MeteringService_ValidateApiKey_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // MeteringServiceServer is the server API for MeteringService service.
 // All implementations must embed UnimplementedMeteringServiceServer
 // for forward compatibility.
@@ -143,7 +131,6 @@ type MeteringServiceServer interface {
 	DeleteMeter(context.Context, *MeterId) (*emptypb.Empty, error)
 	QueryMeter(context.Context, *QueryMeterRequest) (*QueryMeterResponse, error)
 	ListMeterSubjects(context.Context, *ListMeterSubjectsRequest) (*ListMeterSubjectsResponse, error)
-	ValidateApiKey(context.Context, *ValidateApiKeyRequest) (*ValidateApiKeyResponse, error)
 	mustEmbedUnimplementedMeteringServiceServer()
 }
 
@@ -174,9 +161,6 @@ func (UnimplementedMeteringServiceServer) QueryMeter(context.Context, *QueryMete
 }
 func (UnimplementedMeteringServiceServer) ListMeterSubjects(context.Context, *ListMeterSubjectsRequest) (*ListMeterSubjectsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMeterSubjects not implemented")
-}
-func (UnimplementedMeteringServiceServer) ValidateApiKey(context.Context, *ValidateApiKeyRequest) (*ValidateApiKeyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ValidateApiKey not implemented")
 }
 func (UnimplementedMeteringServiceServer) mustEmbedUnimplementedMeteringServiceServer() {}
 func (UnimplementedMeteringServiceServer) testEmbeddedByValue()                         {}
@@ -325,24 +309,6 @@ func _MeteringService_ListMeterSubjects_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MeteringService_ValidateApiKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ValidateApiKeyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MeteringServiceServer).ValidateApiKey(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MeteringService_ValidateApiKey_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MeteringServiceServer).ValidateApiKey(ctx, req.(*ValidateApiKeyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // MeteringService_ServiceDesc is the grpc.ServiceDesc for MeteringService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -378,11 +344,7 @@ var MeteringService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListMeterSubjects",
 			Handler:    _MeteringService_ListMeterSubjects_Handler,
 		},
-		{
-			MethodName: "ValidateApiKey",
-			Handler:    _MeteringService_ValidateApiKey_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "meter.proto",
+	Metadata: "v1/meter.proto",
 }
