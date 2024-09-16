@@ -206,5 +206,4 @@ response, err := meteringService.ListMeters(ctx, 10, 1)
 ## Conclusion
 
 The Meterus Go client provides a simple and efficient way to interact with the Meterus metering and billing service. By following this documentation, you should be able to integrate Meterus into your Go applications effectively.
-
 For more detailed information about the Meterus service itself, please refer to the [Meterus GitHub repository](https://github.com/factly/meterus).
