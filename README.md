@@ -2,14 +2,14 @@
 
 ## Introduction
 
-The Meterus Go client is a Go package that provides a convenient way to interact with the Meterus gRPC server, a metering and billing solution. This client simplifies the process of sending events, managing meters, and querying data from the Meterus service.
+The Meterus Go client is a Go package that provides a convenient way to interact with the Meterus gRPC server, a metering and billing solution. This client simplifies the process of sending events, managing meters, subjects, and querying data from the Meterus service.
 
 ## Installation
 
 To use the Meterus Go client in your project, you need to install it using Go modules. Add the following import to your Go file:
 
 ```go
-import "github.com/factly/meterus/meterus-go"
+import "github.com/elliot14A/meterus-go/client"
 ```
 
 Then run:
@@ -23,11 +23,11 @@ go mod tidy
 To create a new Meterus client, use the `NewMeterusClient` function:
 
 ```go
-client, err := client.NewMeterusClient("address:port", "your-api-key")
+meterusClient, err := client.NewMeterusClient("address:port", "your-api-key")
 if err != nil {
     // Handle error
 }
-defer client.Close()
+defer meterusClient.Close()
 ```
 
 Replace `"address:port"` with the address of your Meterus server and `"your-api-key"` with your Meterus API key.
@@ -36,25 +36,32 @@ Replace `"address:port"` with the address of your Meterus server and `"your-api-
 
 ### CloudEvent
 
-The `CloudEvent` struct represents an event in the Meterus system. It contains the following fields:
+The `CloudEvent` struct represents an event in the Meterus system. It contains fields such as Id, Source, SpecVersion, Type, Time, Subject, and Data.
 
-- `Id`: Unique identifier for the event
-- `Source`: The source of the event
-- `SpecVersion`: The version of the CloudEvents spec
-- `Type`: The type of the event
-- `Time`: The time the event occurred
-- `Subject`: The subject of the event
-- `Data`: Additional data associated with the event
+### Services
+
+The client is now organized into different services:
+
+- MeteringService
+- SubjectService
+- ValidationService
 
 ## Basic Usage
 
-### Ingesting Events
+### Metering Service
 
-To ingest a CloudEvent into Meterus:
+#### Creating a Metering Service
+
+```go
+meteringService := meterusClient.NewMeteringService()
+```
+
+#### Ingesting Events
 
 ```go
 event, err := client.NewCloudEvent(
-    "event-id",
+    // Meterus creates new id if empty id is passed
+    "",
     "event-source",
     "1.0",
     "event-type",
@@ -66,33 +73,29 @@ if err != nil {
     // Handle error
 }
 
-err = client.Ingest(context.Background(), event)
+err = meteringService.Ingest(context.Background(), event)
 if err != nil {
     // Handle error
 }
 ```
 
-### Listing Meters
-
-To retrieve a list of meters:
+#### Listing Meters
 
 ```go
-response, err := client.ListMeters(context.Background(), 10, 1)
+response, err := meteringService.ListMeters(context.Background(), 10, 1)
 if err != nil {
     // Handle error
 }
 // Process the response
 ```
 
-### Creating a Meter
-
-To create a new meter:
+#### Creating a Meter
 
 ```go
-meter, err := client.CreateMeter(context.Background(), &pb.CreateMeterRequest{
+meter, err := meteringService.CreateMeter(context.Background(), &meter.CreateMeterRequest{
     Slug:        "new-meter",
     Description: proto.String("A new meter"),
-    Aggregation: pb.Aggregation_AGGREGATION_COUNT,
+    Aggregation: meter.Aggregation_AGGREGATION_COUNT,
     // Set other fields as needed
 })
 if err != nil {
@@ -101,12 +104,10 @@ if err != nil {
 // Use the created meter
 ```
 
-### Querying a Meter
-
-To query data from a meter:
+#### Querying a Meter
 
 ```go
-response, err := client.QueryMeter(context.Background(), &pb.QueryMeterRequest{
+response, err := meteringService.QueryMeter(context.Background(), &meter.QueryMeterRequest{
     MeterIdOrSlug: "meter-id-or-slug",
     From:          timestamppb.Now(),
     To:            timestamppb.Now(),
@@ -116,6 +117,52 @@ if err != nil {
     // Handle error
 }
 // Process the query response
+```
+
+### Subject Service
+
+#### Creating a Subject Service
+
+```go
+subjectService := meterusClient.NewSubjectService()
+```
+
+#### Creating a Subject
+
+```go
+subject, err := subjectService.Create(context.Background(), "subject-id", proto.String("Display Name"))
+if err != nil {
+    // Handle error
+}
+// Use the created subject
+```
+
+#### Listing Subjects
+
+```go
+subjects, err := subjectService.ListById(context.Background(), 1, 10)
+if err != nil {
+    // Handle error
+}
+// Process the subjects
+```
+
+### Validation Service
+
+#### Creating a Validation Service
+
+```go
+validationService := meterusClient.NewValidationService()
+```
+
+#### Validating an API Key
+
+```go
+isValid, subject, additionalAttributes, err := validationService.ValidateApiKey(context.Background(), "your-api-key", []string{"required-scope"})
+if err != nil {
+    // Handle error
+}
+// Use the validation results
 ```
 
 ## Advanced Usage
@@ -145,7 +192,7 @@ ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
 // Use the context in client method calls
-response, err := client.ListMeters(ctx, 10, 1)
+response, err := meteringService.ListMeters(ctx, 10, 1)
 ```
 
 ## Best Practices
@@ -154,6 +201,7 @@ response, err := client.ListMeters(ctx, 10, 1)
 2. Use appropriate timeouts and contexts to prevent long-running operations.
 3. Handle errors returned by the client methods.
 4. Use the `NewCloudEvent` helper function to create properly formatted CloudEvents.
+5. Organize your code by using the specific services (MeteringService, SubjectService, ValidationService) for related operations.
 
 ## Conclusion
 
