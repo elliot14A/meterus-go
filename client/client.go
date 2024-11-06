@@ -2,11 +2,14 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"strings"
 	"time"
 
 	meter "github.com/elliot14A/meterus-go/meters/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -21,8 +24,15 @@ type Client struct {
 
 // NewMeterusClient creates a new MeterusClient with the given address and API key.
 func NewMeterusClient(addr, apiKey string, opts ...grpc.DialOption) (*Client, error) {
+	creds := insecure.NewCredentials()
+
+	if strings.HasPrefix(addr, "http") {
+		creds = credentials.NewTLS(&tls.Config{
+			InsecureSkipVerify: false,
+		})
+	}
 	opts = append(opts,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithTransportCredentials(creds),
 	)
 
 	conn, err := grpc.NewClient(addr, opts...)
